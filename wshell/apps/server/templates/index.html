@@ -1,0 +1,27 @@
+{{extend "layout.html"}}
+
+{{block content}}
+{{link "jquery.terminal.css"}}
+{{link "jquery.terminal-min.js"}}
+{{link "jquery.mousewheel-min.js"}}
+{{link "socket.io.min.js"}}
+{{link "avalon.js"}}
+{{link "session.js"}}
+<style>
+.shell {font-family:"Courier New";overflow:scroll;}
+.plus {border:1px dotted #999;}
+</style>
+<div ms-controller="shell">
+    <div class="ui pointing menu">
+      <a class="item"
+        ms-repeat-item="shells"
+        ms-class="active:item.id==cur" 
+        ms-click="change(item)">{% item.title %}</a>
+      <a class="item" ms-click="newSession">
+        <i class="plus basic icon"></i>
+      </a>
+    </div>
+    <div class="shell" ms-repeat-item="shells" ms-attr-id="item.id" ms-visible="item.id==cur">
+    </div>
+</div>
+{{end}}
