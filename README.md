@@ -10,6 +10,7 @@ WSHELL
 * avalon.js 页面模板及动态更新
 * jquery.terminal.js 前端终端功能组件
 * semantic-ui 基础页面框架
+* dropzone 实现文件上传
 
 ## 主要功能特性
 
