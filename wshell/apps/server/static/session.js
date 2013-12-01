@@ -124,7 +124,7 @@ function init_terminal(item){
         , outputLimit: 5000
         , login: function(user, password, authenticate) {
             socket.emit('login', {'user':user, 'password':password, 'id':item.id});
-            socket.on('logined', function(data){
+            socket.once('logined', function(data){
                 authenticate(data.token);
                 if (data.token){
                     item.cwd = data.output;
@@ -156,7 +156,6 @@ function init_terminal(item){
         , onBeforelogout: function(term){
             item.drop.destroy();
             delete item.drop;
-            socket.removeAllListener('logined');
         }
         
     });
