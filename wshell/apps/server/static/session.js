@@ -35,7 +35,7 @@ var socket = io.connect('/shell');
 function select_term(id){
     var term = get_term(id);
     term.focus(true);
-    term.scroll(1000);
+//    term.scroll(1000);
 }
 
 function get_term(id){

@@ -5,6 +5,7 @@ WSHELL
 
 * uliweb
 * gevent
+* greenlet
 * gevent-socketio
 * socketio.js
 * avalon.js 页面模板及动态更新

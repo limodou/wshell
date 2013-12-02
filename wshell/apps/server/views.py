@@ -66,7 +66,7 @@ class Command(object):
         if platform == 'win32':
             cmds = ['cmd', '/c']
         else:
-            cmds = ['/bin/bash', '-c']
+            cmds = []
         
         self.server = server
         self._cmd_args = cmd_args
@@ -94,9 +94,10 @@ class Command(object):
     def create_output(self):
         def output():
             while self.process.poll() is None:
-                line = self.process.stdout.readline().rstrip()
+                line = self.process.stdout.readline()
                 self.process.timestamp = now()
-                self.output('return', self.server.safe_encode(line))
+                if line:
+                    self.output('return', self.server.safe_encode(line.rstrip()))
             self.output('cwd', self.server.safe_encode(self.old_cwd))
             self.status = 1 #finished
                 
