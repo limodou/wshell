@@ -15,6 +15,7 @@ monkey.patch_all(subprocess=True)
 encoding = locale.getdefaultlocale()[1] or 'utf8'
 platform = sys.platform
 download_tokens = {}
+authenticated = {}
 
 def can_download(filename):
     import errno
@@ -62,15 +63,19 @@ def upload():
 class Command(object):
     cwd = ''
     def __init__(self, cmd_args, command, server):
+        from uliweb import settings
         
         if platform == 'win32':
             cmds = ['cmd', '/c']
+            self.cmd_args = cmds + cmd_args
         else:
-            cmds = []
-        
+            if settings.WSHELL.shell:
+                self.cmd_args = ['/bin/bash', '-c', command['cmd']]
+            else:
+                self.cmd_args = cmd_args
+            
         self.server = server
         self._cmd_args = cmd_args
-        self.cmd_args = cmds + cmd_args
         self.command = command
         self.id = command['id']
         self.timestamp = now()
@@ -88,8 +93,9 @@ class Command(object):
     
     def create_process(self):
         self.status = 0 #starting
+        cwd = self.old_cwd.rstrip('>')
         self.process = sub.Popen(self.cmd_args, stdin=sub.PIPE, stdout=sub.PIPE, 
-            stderr=sub.STDOUT, shell=False, cwd=self.old_cwd)
+            stderr=sub.STDOUT, shell=False, cwd=cwd)
             
     def create_output(self):
         def output():
@@ -111,7 +117,7 @@ class Command(object):
             self.server.emit(event, {'output':message, 'id':self.command['id']})
         
 class MysqlCommand(Command):
-    cwd = 'mysql'
+    cwd = 'mysql>'
     
     def init(self):
         if '-n' not in self.cmd_args or '--unbuffered' not in self.cmd_args:
@@ -120,6 +126,15 @@ class MysqlCommand(Command):
             self.cmd_args.append('-t')
         self.cmd_args.append('--default-character-set=utf8')
            
+class PythonCommand(Command):
+    cwd = '>>>'
+    
+    def init(self):
+        if '-u' not in self.cmd_args:
+            self.cmd_args.append('-u')
+        if '-i' not in self.cmd_args:
+            self.cmd_args.append('-i')
+
 class DownloadCommand(Command):
     """
     command: download filename
@@ -157,8 +172,8 @@ class ShellNamespace(BaseNamespace):
 
     def initialize(self):
         self.shells = {}
-        self.log("Socketio session started")
         self.check_processes()
+        self.log("Socketio session started")
 
     def check_processes(self):
         from uliweb import settings
@@ -182,7 +197,7 @@ class ShellNamespace(BaseNamespace):
                     del self.shells[k]
                 sleep(0.5)
         spawn(check)
-                        
+          
     def log(self, message):
         log.info("[{0}] {1}".format(self.socket.sessid, message))
 
@@ -204,6 +219,7 @@ class ShellNamespace(BaseNamespace):
         last_process = self.shells.get(_id)
         if last_process and last_process.process and last_process.process.poll() is None:
             process = last_process.process
+            self.log('Using last process %r' % process)
             process.stdin.write(cmd + '\n')
             process.stdin.flush()
         else:
@@ -229,27 +245,49 @@ class ShellNamespace(BaseNamespace):
                 p.process.kill()
         p.status = 1
         
-    def reset_all(self, id):
-        for p in self.shells.values():
+    def reset(self, id):
+        p = self.shells.get(id)
+        if p:
             self.close_process(p)
+            del self.shells[id]
+        self.emit('return', {'output':'Reset successful', 'id':id})
+        self.cwd(self._get_login_path(), id)
+        
+    def reset_all(self):
+        for id in authenticated.keys():
+            self.reset(id)
         self.shells = {}
                 
+    def _get_login_path(self):
+        from uliweb import settings, application
+        
+        os.environ['PROJECT'] = application.project_dir
+        path = os.path.expandvars(settings.WSHELL.login_path)
+        return self.safe_encode(path)
+    
     def on_login(self, data):
         from uliweb.utils.common import get_uuid
-        from uliweb import settings, application
+        from uliweb import settings
         
         if data['user'] == settings.WSHELL.user and data['password'] == settings.WSHELL.password:
             token = get_uuid()
         else:
             token = False
         
-        os.environ['PROJECT'] = application.project_dir
-        path = os.path.expandvars(settings.WSHELL.login_path)
-        self.emit('logined', {'output':path, 'token':token, 'id':data['id']})
+        path = self._get_login_path()
+        authenticated[data['id']] = token
+        self.emit('logined', {'output':path+'>', 'token':token, 'id':data['id']})
     
+    def cwd(self, path, id):
+        self.emit('cwd', {'output':self.safe_encode(path), 'id':id})
+        
     def on_cmd(self, command):
         cmd = command['cmd']
 
+        if not authenticated.get(command['id']):
+            self.emit('needlogin', {'output':'You need to authenticate first.', 'id':command['id']})
+            return
+        
         self.log('cmd : ' + cmd + ' id=' + command['id'])
         if not cmd:
             return
@@ -263,12 +301,14 @@ class ShellNamespace(BaseNamespace):
                 result = sub.check_output(cmd, stderr=sub.STDOUT, shell=True, cwd=command['cwd'])
                 cwd = result.rstrip()
                 if cwd:
-                    self.emit('cwd', {'output':self.safe_encode(cwd), 'id':command['id']})
+                    self.cwd(cwd, command['id'])
             except CalledProcessError as e:
                 result = e.output
                 self.emit('return', {'output':self.safe_encode(result), 'id':command['id']})
         elif cmd == 'reset':
-            self.reset_all(command['id'])
+            self.reset(command['id'])
+        elif cmd == 'reset_all':
+            self.reset_all()
         else:
             self.do(command)
 

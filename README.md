@@ -49,6 +49,7 @@ user = 'test'
 password = 'test'
 stop_interval = 30*60
 login_path = '$PROJECT'
+shell = False
 ```
 
 分别解释如下：
@@ -60,6 +61,15 @@ login_path = '$PROJECT'
 * `login_path` 表示登录后返回给前端的路径。缺省为 `$PROJECT` 表示项目目录，即
   后台服务项目所在的目录。你可以修改为其它的起始目录。除 `$PROJECT` 外，还可以
   使用 `$HOME` 。
+* `shell` 表示在Linux下是否启用整条命令作为shell来执行。这样使得
+
+    ```
+    > a.txt
+    ls *.log
+    rm *.*
+    ```
+    
+    成为可能，所以具有一定的风险性。
 
 ## 使用说明
 
@@ -86,6 +96,15 @@ login_path = '$PROJECT'
 ### 自定义命令开发
 
 用户可以自行开发特殊命令。
+
+### 使用局限
+
+WShell对简单的命令行交互有一定的支持，比如mysql，但是它无法实现和真正终端一样的
+输入编辑，特别是象python这样，可以输入块语句的命令行交互。所以不要用它进行这种
+复杂的处理。
+
+* **mysql** 建议使用 `mysql -uuser -ppassword [database]` ，目前口令要一起给出
+  还无法实现动态交互。
 
 ## 浏览器要求
 

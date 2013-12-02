@@ -80,6 +80,11 @@ socket.on('err', function(data){
     var term = get_term(data.id);
     term.error(data.output);
 });
+socket.on('needlogin', function(data){
+    var term = get_term(data.id);
+    term.error(data.output);
+    term.logout();
+});
 //socket.on('disconnect', function(){
 //    console.log('disconnect');
 //});
@@ -111,13 +116,13 @@ var model = avalon.define("shell", function(vm){
 });
 
 function make_prompt(p){
-    return '[[;#6c6;]'+p+'>] ';
+    return '[[;#6c6;]'+p+'] ';
 }
 function init_terminal(item){
     $('#'+item.id).terminal(function(command, term) {
 //       term.pause();
         socket.emit('cmd', {'cmd':command, 'cwd':item.cwd, 'id':item.id});
-    }, { prompt: make_prompt('')
+    }, { prompt: make_prompt('>')
         , height: 400
         , greetings: false
         , name: item.id
