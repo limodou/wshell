@@ -279,7 +279,7 @@ class ShellNamespace(BaseNamespace):
         self.emit('logined', {'output':path+'>', 'token':token, 'id':data['id']})
     
     def cwd(self, path, id):
-        self.emit('cwd', {'output':self.safe_encode(path), 'id':id})
+        self.emit('cwd', {'output':self.safe_encode(path)+'>', 'id':id})
         
     def on_cmd(self, command):
         cmd = command['cmd']
@@ -293,12 +293,13 @@ class ShellNamespace(BaseNamespace):
             return
         
         if cmd.startswith('cd '):
+            cwd = command['cwd'].rstrip('>')
             if platform == 'win32':
                 cmd = '%s && cd' % cmd
             else:
                 cmd = '%s && pwd' % cmd
             try:
-                result = sub.check_output(cmd, stderr=sub.STDOUT, shell=True, cwd=command['cwd'])
+                result = sub.check_output(cmd, stderr=sub.STDOUT, shell=True, cwd=cwd)
                 cwd = result.rstrip()
                 if cwd:
                     self.cwd(cwd, command['id'])
