@@ -6,7 +6,7 @@ WSHELL
 * uliweb
 * gevent
 * greenlet
-* gevent-socketio
+* gevent-socketio(依赖gevent-websocket)
 * socketio.js
 * avalon.js 页面模板及动态更新
 * jquery.terminal.js 前端终端功能组件
@@ -25,9 +25,21 @@ WSHELL
 
 * uliweb
 * gevent
+* greenlist
+* green-websocket
 * gevent-socketio
 
+在项目目录下提供了 requirements.txt 文件，因此可以方便执行
+
+```
+pip install -r requirements.txt
+```
+
+来安装所需要的文件。
+
 ## 如何运行
+
+运行时要先进入wshell安装目录下的wshell子目录，看到有apps子目录就对了。
 
 测试
 

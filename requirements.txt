@@ -1,0 +1,5 @@
+Uliweb>=0.2.2
+gevent>=1.0
+greenlet
+gevent-websocket
+gevent-socketio
