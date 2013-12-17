@@ -112,15 +112,16 @@ class Command(object):
         import time
         def output():
             while self.process.poll() is None:
-                b = time.time()
+#                b = time.time()
                 while 1:
                     line = self.process.stdout.readline()
                     if line:
                         self.process.timestamp = now()
                         self.output('data', self.server.safe_encode(line.rstrip()))
+#                        b = time.time()
                     else:
-                        if time.time() - b > 0.5:
-                            break
+#                        if time.time() - b > 0.1:
+                        break
             self.output('cwd', self.server.safe_encode(self.old_cwd))
             self.status = 1 #finished
                 
