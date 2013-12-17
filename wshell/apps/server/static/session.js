@@ -107,6 +107,15 @@ var model = avalon.define("shell", function(vm){
         }, 500);
         vm.cur = _id;
     }
+    vm.close = function(id){
+        for(var i=0; i<vm.shells.length; i++){
+            var x = vm.shells[i];
+            if (x.id == id){
+                vm.shells.splice(i, 1);
+                break;
+            }
+        }
+    }
     vm.change = function(item){
         vm.cur = item.id;
         setTimeout(function(){
@@ -121,7 +130,10 @@ function make_prompt(p){
 function init_terminal(item){
     $('#'+item.id).terminal(function(command, term) {
 //       term.pause();
-        socket.emit('cmd', {'cmd':command, 'cwd':item.cwd, 'id':item.id});
+        if(command == 'close'){
+            model.close(item.id);
+        }else
+            socket.emit('cmd', {'cmd':command, 'cwd':item.cwd, 'id':item.id});
     }, { prompt: make_prompt('>')
         , height: 400
         , greetings: false

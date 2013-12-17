@@ -80,7 +80,7 @@ shell = False
     ls *.log
     rm *.*
     ```
-    
+
     成为可能，所以具有一定的风险性。
 
 ## 使用说明
@@ -98,6 +98,7 @@ shell = False
 * 前端命令(由前端实现)
     * `clear` 清屏
     * `exit` 退出，重新进入登录状态
+    * `close` 关闭当前shell窗口
 * 特殊命令(由前后端共同实现，为WShell特有)
     * `download filename` 可以用来下载当前目录下的filename文件
     * `reset` 清理后台未还在运行的子进程

@@ -151,7 +151,7 @@ class DownloadCommand(Command):
     def create_output(self):
         def p():
             if len(self._cmd_args) > 1:
-                filename = os.path.join(self.command['cwd'], self._cmd_args[1])
+                filename = os.path.join(self.command['cwd'].rstrip('>'), self._cmd_args[1])
                 if not os.path.exists(filename):
                     self.output('err', 'filename %s is not existed!' % filename)
                     return
