@@ -77,16 +77,8 @@ class Command(object):
     def __init__(self, cmd_args, command, server):
         from uliweb import settings
         
-        if platform == 'win32':
-            cmds = ['cmd', '/c']
-            self.cmd_args = cmds + cmd_args
-        else:
-            if settings.WSHELL.shell:
-                self.cmd_args = ['/bin/bash', '-c', command['cmd']]
-            else:
-                self.cmd_args = cmd_args
-            
         self.server = server
+        self.cmd_args = cmd_args
         self._cmd_args = cmd_args
         self.command = command
         self.id = command['id']
@@ -97,6 +89,13 @@ class Command(object):
         self.status = -1
         
         self.init()
+        
+        if platform == 'win32':
+            self.cmd_args = ['cmd', '/c'] + self.cmd_args
+        else:
+            if settings.WSHELL.shell:
+                self.cmd_args = ['/bin/bash', '-c'] + [' '.join(self.cmd_args)]
+        
         self.create_process()
         self.create_output()
         
