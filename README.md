@@ -11,7 +11,7 @@ WSHELL
 * avalon.js 页面模板及动态更新
 * jquery.terminal.js 前端终端功能组件
 * semantic-ui 基础页面框架
-* dropzone 实现文件上传
+* jqfileupload 实现文件上传
 
 ## 主要功能特性
 
@@ -20,6 +20,7 @@ WSHELL
 * 支持shell交互，如mysql的命令行支持
 * download filename 可以下载某个文件，会自动进行权限检查，用户为运行WShell的用户
 * upload 可以上传文件
+* show 可以查看图片
 
 ## 安装要求
 
