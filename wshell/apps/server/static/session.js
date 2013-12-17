@@ -12,7 +12,7 @@ function getId(){
 }
 
 WEB_SOCKET_SWF_LOCATION = "/static/WebSocketMain.swf";
-WEB_SOCKET_DEBUG = true;
+WEB_SOCKET_DEBUG = false;
 
 /* download process */
 (function($){
@@ -61,10 +61,36 @@ function get_item(id){
 //socket.on('connect', function(){
 //    console.log('connect');
 //});
-socket.on('return', function(data){
+socket.on('data', function(data){
     var term = get_term(data.id);
-    term.echo(data.output);
+    term.echo(data.output, {'raw':data.raw || false});
 //    term.resume();
+});
+socket.on('upload', function(data){
+    var term = get_term(data.id);
+    term.echo(data.output, {'raw':data.raw || false});
+    var _id = data.eid;
+    var el = $('#upload_'+_id);
+    el.find('input').fileupload({
+        dataType: 'json',
+        add: function (e, data) {
+            el.find('input').remove();
+            $('<span class="progress"/>').text('Uploading...').appendTo(el);
+            data.submit();
+        },
+        progressall: function (e, data) {
+            var progress = parseInt(data.loaded / data.total * 100, 10);
+            el.find('.progress').text('Uploading...'+progress+'%');
+        },
+        done: function (e, data) {
+            el.parent().parent().remove();
+            if (data.result.success){
+                term.echo('Uploaded file saved to ' + data.result.filename);
+            }else{
+                term.error(data.result.message);
+            }
+        }
+    });
 });
 socket.on('cwd', function(data){
     var term = get_term(data.id);
@@ -148,6 +174,7 @@ function init_terminal(item){
                     var term = get_term(data.id);
                     term.set_prompt(make_prompt(item.cwd));
                     
+                    /*
                     //add dropzone support
                     var drop = new Dropzone('#'+item.id, { 
                         url: "/upload?id="+item.id
@@ -167,14 +194,16 @@ function init_terminal(item){
                     drop.on('sending', function(file, xhr, formData){
                         formData.append('path', item.cwd);
                     });
+                    */
                 }
             });
         }
+        /*
         , onBeforelogout: function(term){
             item.drop.destroy();
             delete item.drop;
         }
-        
+        */
     });
 }
 
@@ -187,4 +216,4 @@ $(window).bind("beforeunload", function() {
 });
 
 /* dropzone process */
-Dropzone.autoDiscover = false;
+//Dropzone.autoDiscover = false;

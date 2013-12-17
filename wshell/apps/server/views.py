@@ -15,6 +15,7 @@ monkey.patch_all(subprocess=True)
 encoding = locale.getdefaultlocale()[1] or 'utf8'
 platform = sys.platform
 download_tokens = {}
+images_tokens = {}
 authenticated = {}
 
 def can_download(filename):
@@ -49,16 +50,27 @@ def download():
         
     return 'Error: token is not right'
 
+@expose('/image')
+def image():
+    from uliweb.utils.filedown import filedown
+    
+    token = request.GET.get('token')
+    filename = images_tokens.pop(token, None)
+    if filename:
+        return filedown(request.environ, filename, action='download', 
+            real_filename=filename)
+        
+    return 'Error: token is not right'
+
 @expose('/upload')
 def upload():
-    _id = request.GET.get('id')
-    path = request.POST.get('path')
+    path = request.GET.get('path')
     
     if 'file' in request.files:
         fname = functions.save_file(os.path.join(path, request.files['file'].filename), request.files['file'].stream, convert=False)
-        return json({'success':True, 'filename':fname})
+        return json({'success':True, 'filename':fname}, content_type='text/html;charset=utf-8')
     else:
-        return json({'success':False, 'message':form.error['file']})
+        return json({'success':False, 'message':form.error['file']}, content_type='text/html;charset=utf-8')
 
 class Command(object):
     cwd = ''
@@ -106,7 +118,7 @@ class Command(object):
                     line = self.process.stdout.readline()
                     if line:
                         self.process.timestamp = now()
-                        self.output('return', self.server.safe_encode(line.rstrip()))
+                        self.output('data', self.server.safe_encode(line.rstrip()))
                     else:
                         if time.time() - b > 0.5:
                             break
@@ -158,7 +170,7 @@ class DownloadCommand(Command):
                 try:
                     flag = can_download(filename)
                     if not flag:
-                        self.output('err', 'filename %s is not existed!' % filename)
+                        self.output('err', "You have no rights to download %s." % filename)
                         return
                 except Exception as e:
                     self.output('err', str(e))
@@ -170,10 +182,75 @@ class DownloadCommand(Command):
                 download_tokens[token] = filename
                 self.output('download', url)
             else:
-                self.output('err', 'You should give filename paramter')
+                self.output('err', 'You should provide filename paramter first.')
         p()
         self.status = 1
        
+class UploadCommand(Command):
+    """
+    command: upload
+    """
+    def create_process(self):
+        return
+    
+    def create_output(self):
+        _id = get_uuid()[:6]
+        self.output('upload', '', {'output':'<div id="upload_%s"><input type="file" name="file" data-url="/upload?path=%s"></input></div>' % (_id, self.command['cwd'].rstrip('>')), 
+                                'raw':True,
+                                'eid':_id,
+                                'id':self.command['id']})
+        self.status = 1
+
+class ShowCommand(Command):
+    """
+    command: show image
+    """
+    def create_process(self):
+        return
+    
+    def create_output(self):
+        #if args is more than, then just display given images
+        #if no args, then display all images in current folder
+        from glob import iglob
+        from uliweb.utils.image import test_image
+        
+        def p():
+            cur_path = self.command['cwd'].rstrip('>')
+            def iter_file():
+                if len(self._cmd_args) > 1:
+                    for p in self._cmd_args:
+                        for x in iglob(os.path.join(cur_path, p)):
+                            yield x
+                else:
+                    for x in iglob(os.path.join(cur_path, '*.*')):
+                        yield x
+                
+            for f in iter_file():
+                if not os.path.exists(f):
+                    continue
+                #test is the file is an image
+                if not test_image(f, strong=True):
+                    continue
+                try:
+                    flag = can_download(f)
+                    if not flag:
+                        self.output('err', 'You have no rights to view the image file %s.' % f)
+                        continue
+                except Exception as e:
+                    self.output('err', str(e))
+                    continue
+                
+                token = get_uuid()
+                #todo check the right of the file
+                url = '/images?token=' + token
+                images_tokens[token] = f
+                self.output('data', '', {'output':'<img src="/image?token=%s" title="%s"/>'%(token, f), 
+                                    'raw':True,
+                                    'id':self.command['id']}
+                )
+        p()
+        self.status = 1
+
 class ShellNamespace(BaseNamespace):
 
     def initialize(self):
@@ -256,7 +333,7 @@ class ShellNamespace(BaseNamespace):
         if p:
             self.close_process(p)
             del self.shells[id]
-        self.emit('return', {'output':'Reset successful', 'id':id})
+        self.emit('data', {'output':'Reset successful', 'id':id})
         self.cwd(self._get_login_path(), id)
         
     def reset_all(self):
@@ -315,7 +392,7 @@ class ShellNamespace(BaseNamespace):
                     self.cwd(cwd, command['id'])
             except CalledProcessError as e:
                 result = e.output
-                self.emit('return', {'output':self.safe_encode(result), 'id':command['id']})
+                self.emit('data', {'output':self.safe_encode(result), 'id':command['id']})
         elif cmd == 'reset':
             self.reset(command['id'])
         elif cmd == 'reset_all':
