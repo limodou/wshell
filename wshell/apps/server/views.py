@@ -98,12 +98,18 @@ class Command(object):
             stderr=sub.STDOUT, shell=False, cwd=cwd)
             
     def create_output(self):
+        import time
         def output():
             while self.process.poll() is None:
-                line = self.process.stdout.readline()
-                self.process.timestamp = now()
-                if line:
-                    self.output('return', self.server.safe_encode(line.rstrip()))
+                b = time.time()
+                while 1:
+                    line = self.process.stdout.readline()
+                    if line:
+                        self.process.timestamp = now()
+                        self.output('return', self.server.safe_encode(line.rstrip()))
+                    else:
+                        if time.time() - b > 0.5:
+                            break
             self.output('cwd', self.server.safe_encode(self.old_cwd))
             self.status = 1 #finished
                 
@@ -280,6 +286,10 @@ class ShellNamespace(BaseNamespace):
     
     def cwd(self, path, id):
         self.emit('cwd', {'output':self.safe_encode(path)+'>', 'id':id})
+        
+    def on_data(self, data):
+        print '====', data['data']
+        self.emit('data', {'output':data['data'], 'id':data['id']})
         
     def on_cmd(self, command):
         cmd = command['cmd']
